@@ -1,4 +1,4 @@
-# Skillocate backend
+# REST API
 Python backend based on flask and SQLAlchemy. Built for a PostgreSQL database.
 
 ## Requirements
