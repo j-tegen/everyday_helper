@@ -1,6 +1,6 @@
-from flask import Blueprint, request, make_response, jsonify, g
+from flask import Blueprint, request, make_response, jsonify, g, send_file
 from flask.views import MethodView
-
+from io import BytesIO
 from project.server.models import Expense, BudgetItem, User
 from project.server import app, db
 from project.server.views.decorators import login_required
@@ -20,6 +20,20 @@ def get_all_expense():
     }
     return make_response(jsonify(responseObject)), 200
 
+
+@bp_expense.route('/test_file/', methods=['GET'])
+def get_file():
+        # Use BytesIO instead of StringIO here.
+    buffer = BytesIO()
+    buffer.write(b'jJust some letters.')
+    # Or you can encode it to bytes.
+    # buffer.write('Just some letters.'.encode('utf-8'))
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True,
+                     attachment_filename='a_file.txt',
+                     mimetype='text/csv') 
+
+                     
 @bp_expense.route('/expense/<id>/', methods=['GET'])
 @login_required
 def get_expense(id):
@@ -51,12 +65,12 @@ def create_expense():
                 'status': 'success',
                 'message': 'Successfully created a expense',
                 'data': expense.serialize()
-            }
+        }
         return make_response(jsonify(responseObject)), 201
     except Exception as e:
         responseObject = {
                 'status': 'fail',
                 'message': 'Error while creating.',
                 'details': str(e)
-            }
+        }
         return make_response(jsonify(responseObject)), 400

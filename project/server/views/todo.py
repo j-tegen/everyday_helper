@@ -1,7 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify, g
 from flask.views import MethodView
 
-from project.server.models import Todo, User
+from project.server.models import Todo, User, Notification
 from project.server import app, db
 from project.server.views.decorators import login_required
 
@@ -43,7 +43,10 @@ def get_todo(id):
 def create_todo():
     post_data = request.get_json()
     try:
-        todo = Todo(user_id=g.user_id, account_id=g.account_id, data=post_data)
+        todo = Todo(account_id=g.account_id, data=post_data)
+        if todo.user_id != g.user_id:
+            notification = Notification(account_id=g.account_id, user_id=todo.user_id, data={})
+            todo.notifications.append(notification)
         db.session.add(todo)
         db.session.commit()
         responseObject = {

@@ -69,17 +69,17 @@ class Todo(db.Model, BaseModel):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     account_id = db.Column(db.Integer, db.ForeignKey('account.id'))
     shopping_list_id = db.Column(db.Integer, db.ForeignKey('shopping_list.id'))
+    notifications = db.relationship('Notification', backref='todo')
 
     hide = ['shopping_list_id', 'user_id', 'account_id']
 
     
     def __init__(self, 
-            user_id,
             account_id, 
             data
         ):
         self.account_id = account_id
-        self.user_id = user_id
+        self.user_id = data.get('user_id')
         self.title = data.get('title','')
         self.description = data.get('description','')
         self.done = data.get('done',False)
@@ -271,6 +271,26 @@ class Category(db.Model, BaseModel):
         self.account_id = account_id
         self.name = data.get('name')
 
+class Notification(db.Model, BaseModel):
+    __tablename__ = 'notification'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(50))
+    notification_type = db.Column(db.String(50))
+    description = db.Column(db.String(50))
+    seen = db.Column(db.Boolean)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    account_id = db.Column(db.Integer, db.ForeignKey('account.id'))
+    todo_id = db.Column(db.Integer, db.ForeignKey('todo.id'))
+
+    def __init__(self, account_id, user_id, data):
+        self.account_id = account_id
+        self.user_id = user_id
+        self.title = data.get('title','')
+        self.notification_type = data.get('notification_type','unseen')
+        self.description = data.get('description','')
+        self.seen = False
+
 class Account(db.Model, BaseModel):
     __tablename__ = 'account'
     id = db.Column(db.Integer, primary_key=True)
@@ -284,6 +304,7 @@ class Account(db.Model, BaseModel):
     categories = db.relationship('Category', backref='account')
     expenses = db.relationship('Expense', backref='account')
     revenues = db.relationship('Revenue', backref='account')
+    notifications = db.relationship('Notification', backref='account')
     
     def __init__(self, account_name, level='basic'):
         self.account_name = account_name
@@ -307,6 +328,7 @@ class User(db.Model, BaseModel):
     budgets = db.relationship('Budget', backref='user')
     expenses = db.relationship('Expense', backref='user')
     revenues = db.relationship('Revenue', backref='user')
+    notifications = db.relationship('Notification', backref='user')
 
     hide = ['password' ,'account_id']
 
@@ -332,11 +354,6 @@ class User(db.Model, BaseModel):
                 'sub': user_id,
                 'account': account_id
             }
-            print(jwt.encode(
-                payload,
-                app.config.get('SECRET_KEY'),
-                algorithm='HS256'
-            ))
             return jwt.encode(
                 payload,
                 app.config.get('SECRET_KEY'),
