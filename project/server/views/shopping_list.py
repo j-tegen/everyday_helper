@@ -59,6 +59,37 @@ def create_shopping_list():
                 'details': str(e)
             }
         return make_response(jsonify(responseObject)), 400
+
+@bp_shopping_list.route('/shopping_list/<id>/', methods=['PUT'])
+@login_required
+def update_shopping_list(id):
+    put_data = request.get_json()
+    try:
+        shopping_list = ShoppingList.query.get(id)
+        if shopping_list.category_id != put_data.get('category_id'):
+            shopping_list_items = ShoppingListItem.query.filter_by(shopping_list_id=shopping_list.id,
+                category_id=shopping_list.category_id).all()
+            
+            for item in shopping_list_items:
+                item.category_id = put_data.get('category_id')
+                db.session.add(item)
+
+        shopping_list.update(put_data) 
+        db.session.add(shopping_list)
+        db.session.commit()
+        responseObject = {
+                'status': 'success',
+                'message': 'Successfully created a shopping_list',
+                'data': shopping_list.serialize()
+            }
+        return make_response(jsonify(responseObject)), 201
+    except Exception as e:
+        responseObject = {
+                'status': 'fail',
+                'message': 'Error while creating.',
+                'details': str(e)
+            }
+        return make_response(jsonify(responseObject)), 400
  
 @bp_shopping_list.route('/shopping_list/<id>/shopping_list_item/', methods=['POST'])
 @login_required

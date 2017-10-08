@@ -14,28 +14,31 @@ def user_register():
     user = User.query.filter_by(email=post_data.get('email')).first()
     if not user:
         try:
+            user = User(
+                username=post_data.get('username'),
+                email=post_data.get('email'),
+                password=post_data.get('password'),
+                name=post_data.get('name')
+            )
 
             account = Account.query.filter_by(account_name=post_data.get('account_name')).first()
             if not account:
                 account = Account(account_name=post_data.get('account_name'))
                 db.session.add(account)
-                db.session.commit()
 
-            user = User(
-                email=post_data.get('email'),
-                password=post_data.get('password'),
-                account_id=account.id
-            )
+                user.verified = True
             
+            account.users.append(user)
             # insert the user
-            db.session.add(user)
+            # db.session.add(user)
             db.session.commit()
             # generate the auth token
             auth_token = user.encode_auth_token(user.id, user.account_id)
             responseObject = {
                 'status': 'success',
                 'message': 'Successfully registered.',
-                'auth_token': auth_token.decode()
+                'auth_token': auth_token.decode(),
+                'user': user.serialize()
             }
             return make_response(jsonify(responseObject)), 201
         except Exception as e:
@@ -49,8 +52,9 @@ def user_register():
         responseObject = {
             'status': 'fail',
             'message': 'User already exists. Please Log in.',
+            'user': user.serialize()
         }
-        return make_response(jsonify(responseObject)), 202
+        return make_response(jsonify(responseObject)), 409
 
 @bp_user.route('/user/login/', methods=['POST'])
 def user_login():

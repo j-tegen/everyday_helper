@@ -10,18 +10,22 @@ import datetime
 from project.server import app, db, bcrypt
 
 class BaseModel():
-    def serialize(self, relation_levels=1):
+    def serialize(self, origin=''):
         ret_data = {}
         
         columns = self.__table__.columns.keys()
         relationships = self.__mapper__.relationships.keys()
         column_attrs = dict(self.__mapper__.column_attrs)
 
+        if hasattr(self, 'included_relations'):
+            included_relations = self.included_relations
+        else:
+            included_relations = []
         if hasattr(self, 'hide'):
             hide = self.hide
         else:
             hide = []
-        
+
         for c in columns:
             if c not in hide:
                 
@@ -40,19 +44,18 @@ class BaseModel():
                         'type': attr_type
                     }
         
-        if relation_levels > 0:
-            for r in relationships:
-                if r not in hide:
-                    if self.__mapper__.relationships[r].uselist:
-                        ret_data[r] = []
-                        for item in getattr(self, r):
-                            if item:
-                                ret_data[r].append(item.serialize(relation_levels-1))
-                            else:
-                                ret_data[r].append({})
-                    else:
-                        if getattr(self,r):
-                            ret_data[r] = getattr(self, r).serialize(0)
+        for r in relationships:
+            if r in included_relations and r != origin:
+                if self.__mapper__.relationships[r].uselist:
+                    ret_data[r] = []
+                    for item in getattr(self, r):
+                        if item:
+                            ret_data[r].append(item.serialize(origin=self.__tablename__))
+                        else:
+                            ret_data[r].append({})
+                else:
+                    if getattr(self,r):
+                        ret_data[r] = getattr(self, r).serialize(origin=self.__tablename__)
 
         return ret_data
 
@@ -72,7 +75,14 @@ class Todo(db.Model, BaseModel):
     notifications = db.relationship('Notification', backref='todo')
 
     hide = ['shopping_list_id', 'user_id', 'account_id']
+    included_relations = ['notifications', 'shopping_list']
 
+    def update(self, data):
+        self.title = data.get('title')
+        self.done = data.get('done')
+        self.date = data.get('date')
+        self.user_id = data.get('user_id')
+        self.description = data.get('description')
     
     def __init__(self, 
             account_id, 
@@ -100,6 +110,14 @@ class ShoppingList(db.Model, BaseModel):
     todos = db.relationship('Todo', backref='shopping_list')
 
     hide = ['category_id' , 'user_id', 'account_id']
+    included_relations = ['user', 'shopping_list_items', 'category']
+
+    def update(self, data):
+        self.name = data.get('name')
+        self.done = data.get('done')
+        self.value = data.get('value')
+        self.user_id = data.get('user_id')
+        self.category_id = data.get('category_id')
 
     def __init__(self, 
             user_id,
@@ -122,6 +140,7 @@ class ShoppingListItem(db.Model, BaseModel):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     shopping_list_id = db.Column(db.Integer, db.ForeignKey('shopping_list.id'))
     
+    included_relations = ['category', 'shopping_list']
     hide = ['category_id' , 'shopping_list_id']
 
     def __init__(self, 
@@ -147,6 +166,7 @@ class Budget(db.Model, BaseModel):
 
     budget_items = db.relationship('BudgetItem', backref='budget')
 
+    included_relations = ['notifications', 'budget_items']
     hide = ['user_id', 'account_id']
 
     def __init__(self, account_id, user_id, data):
@@ -173,17 +193,16 @@ class BudgetItem(db.Model, BaseModel):
     def sum_revenues(self):
         return func.sum(Revenue.value)
 
-
     expenses = db.relationship('Expense')
     revenues = db.relationship('Revenue')
 
     hide = ['category_id' , 'budget_item_id']
+    included_relations = ['category', 'expenses', 'revenues', 'budget']
 
     def __init__(self, 
             account_id,
             data
         ):
-        print(data.get('date', None))
         self.budget_value = data.get('budget_value','')
         self.category_id = data.get('category').get('id')
         self.year = data.get('year', datetime.datetime.now().year)
@@ -204,7 +223,7 @@ class Expense(db.Model, BaseModel):
     account_id = db.Column(db.Integer, db.ForeignKey('account.id'))
 
     hide = ['category_id' , 'budget_item_id', 'user_id', 'account_id']
-
+    included_relations = ['budget_item', 'category', 'user']
 
     def __init__(self, 
             data
@@ -237,6 +256,7 @@ class Revenue(db.Model, BaseModel):
     account_id = db.Column(db.Integer, db.ForeignKey('account.id'))
 
     hide = ['category_id' , 'budget_item_id', 'user_id', 'account_id']
+    included_relations = ['budget_item', 'category', 'user']
 
     def __init__(self, 
             data
@@ -262,10 +282,13 @@ class Category(db.Model, BaseModel):
     name = db.Column(db.String(50))
     account_id = db.Column(db.Integer, db.ForeignKey('account.id'))
     
+    shopping_list_items = db.relationship('ShoppingListItem', backref='category')
     shopping_lists = db.relationship('ShoppingList', backref='category')
     budget_items = db.relationship('BudgetItem', backref='category')
     expenses = db.relationship('Expense', backref='category')
     revenues = db.relationship('Revenue', backref='category')
+
+    hide = ['account_id']
 
     def __init__(self, account_id, data):
         self.account_id = account_id
@@ -282,6 +305,8 @@ class Notification(db.Model, BaseModel):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     account_id = db.Column(db.Integer, db.ForeignKey('account.id'))
     todo_id = db.Column(db.Integer, db.ForeignKey('todo.id'))
+
+    hide = ['user_id', 'account_id', 'todo_id']
 
     def __init__(self, account_id, user_id, data):
         self.account_id = account_id
@@ -316,6 +341,9 @@ class User(db.Model, BaseModel):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
+    name = db.Column(db.String(100))
+    username = db.Column(db.String(50))
+    verified = db.Column(db.Boolean)
     password = db.Column(db.String(255), nullable=False)
     registered_on = db.Column(db.DateTime, nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
@@ -332,15 +360,22 @@ class User(db.Model, BaseModel):
 
     hide = ['password' ,'account_id']
 
-    def __init__(self, email, password, account_id, admin=False):
+    def __init__(self, 
+            name, 
+            username, 
+            email, 
+            password, 
+            admin=False
+    ):
         self.email = email
-        print(app.config.get('SECRET_KEY'))
+        
         self.password = bcrypt.generate_password_hash(
             password, app.config.get('BCRYPT_LOG_ROUNDS')
         ).decode()
         self.registered_on = datetime.datetime.now()
         self.admin = admin
-        self.account_id = account_id
+        self.name = name
+        self.username = username
 
     def encode_auth_token(self, user_id, account_id):
         """
