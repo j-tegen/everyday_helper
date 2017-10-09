@@ -1,5 +1,6 @@
 from flask import Blueprint, request, make_response, jsonify, g
 from flask.views import MethodView
+from sqlalchemy import func
 
 from project.server import bcrypt, db
 from project.server.models import User, Account, BlacklistToken
@@ -11,7 +12,7 @@ bp_user = Blueprint('user', __name__)
 def user_register():
     post_data = request.get_json()
     # check if user already exists
-    user = User.query.filter_by(email=post_data.get('email')).first()
+    user = User.query.filter(func.lower(User.email) == func.lower(post_data.get('email'))).first()
     if not user:
         try:
             user = User(
@@ -21,7 +22,7 @@ def user_register():
                 name=post_data.get('name')
             )
 
-            account = Account.query.filter_by(account_name=post_data.get('account_name')).first()
+            account = Account.query.filter(func.lower(Account.account_name) == func.lower(post_data.get('account_name'))).first()
             if not account:
                 account = Account(account_name=post_data.get('account_name'))
                 db.session.add(account)
@@ -34,6 +35,7 @@ def user_register():
             db.session.commit()
             # generate the auth token
             auth_token = user.encode_auth_token(user.id, user.account_id)
+            print(auth_token)
             responseObject = {
                 'status': 'success',
                 'message': 'Successfully registered.',
@@ -42,7 +44,6 @@ def user_register():
             }
             return make_response(jsonify(responseObject)), 201
         except Exception as e:
-            print(e)
             responseObject = {
                 'status': 'fail',
                 'message': 'Some error occurred. Please try again.'
@@ -61,8 +62,8 @@ def user_login():
     post_data = request.get_json()
     try:
         # fetch the user data
-        user = User.query.filter_by(
-            email=post_data.get('email')
+        user = User.query.filter(
+            func.lower(User.email) == func.lower(post_data.get('email'))
         ).first()
         if user and bcrypt.check_password_hash(
             user.password, post_data.get('password')
@@ -72,13 +73,14 @@ def user_login():
                 responseObject = {
                     'status': 'success',
                     'message': 'Successfully logged in.',
-                    'auth_token': auth_token.decode()
+                    'auth_token': auth_token.decode(),
+                    'user': user.serialize()
                 }
                 return make_response(jsonify(responseObject)), 200
-        else:
+        elif not user:
             responseObject = {
                 'status': 'fail',
-                'message': 'User does not exist.'
+                'message': 'Invalid password and/or username and account.'
             }
             return make_response(jsonify(responseObject)), 404
     except Exception as e:

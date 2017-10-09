@@ -8,7 +8,7 @@ from functools import wraps
 import project.server.utils
 
 app = Flask(__name__)
-CORS(app)
+
 
 app_settings = os.getenv(
     'APP_SETTINGS',
@@ -17,6 +17,7 @@ app_settings = os.getenv(
 app.json_encoder = utils.CustomJSONEncoder
 app.config.from_object(app_settings)
 
+CORS(app)
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 
