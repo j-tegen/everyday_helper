@@ -29,6 +29,7 @@ from project.server.views.category import bp_category
 from project.server.views.budget import bp_budget
 from project.server.views.expense import bp_expense
 from project.server.views.revenue import bp_revenue
+from project.server.views.general import bp_general
 
 app.register_blueprint(bp_user, url_prefix=app.config['APPLICATION_ROOT'])
 app.register_blueprint(bp_todo, url_prefix=app.config['APPLICATION_ROOT'])
@@ -37,4 +38,5 @@ app.register_blueprint(bp_category, url_prefix=app.config['APPLICATION_ROOT'])
 app.register_blueprint(bp_budget, url_prefix=app.config['APPLICATION_ROOT'])
 app.register_blueprint(bp_expense, url_prefix=app.config['APPLICATION_ROOT'])
 app.register_blueprint(bp_revenue, url_prefix=app.config['APPLICATION_ROOT'])
+app.register_blueprint(bp_general, url_prefix=app.config['APPLICATION_ROOT'])
 
