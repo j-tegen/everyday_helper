@@ -5,10 +5,10 @@ from project.server import app, db
 from project.server.views.decorators import login_required
 
 
-bp_revenue = Blueprint('general', __name__)
+bp_general = Blueprint('general', __name__)
 
 
-@bp_revenue.route('/general/status/', methods=['GET'])
+@bp_general.route('/general/status/', methods=['GET'])
 def status():
     
     responseObject = {
