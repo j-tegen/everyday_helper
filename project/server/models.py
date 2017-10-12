@@ -10,7 +10,7 @@ import datetime
 from project.server import app, db, bcrypt
 
 class BaseModel():
-    def serialize(self, origin=''):
+    def serialize(self, origin='', extensive=False):
         ret_data = {}
         
         columns = self.__table__.columns.keys()
@@ -33,17 +33,23 @@ class BaseModel():
                 if attr_type == "String":
                     s = str(column_attrs[c].columns[0].type)
                     attr_len = s[s.find("(")+1:s.find(")")]
-                    ret_data[c] = {
-                        'value': getattr(self, c), 
-                        'type': attr_type, 
-                        'len': attr_len
-                    }
+                    if extensive:
+                        ret_data[c] = {
+                            'value': getattr(self, c), 
+                            'type': attr_type, 
+                            'len': attr_len
+                        }
+                    else:
+                        ret_data[c] = getattr(self, c)
                 else:
-                    ret_data[c] = {
-                        'value': getattr(self, c), 
-                        'type': attr_type
-                    }
-        
+                    if extensive:
+                        ret_data[c] = {
+                            'value': getattr(self, c), 
+                            'type': attr_type
+                        }
+                    else:
+                        ret_data[c] = getattr(self, c)
+
         for r in relationships:
             if r in included_relations and r != origin:
                 if self.__mapper__.relationships[r].uselist:
