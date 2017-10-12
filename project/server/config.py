@@ -7,6 +7,7 @@ db_uid = os.environ['EVERYDAY_UID']
 db_pw = os.environ['EVERYDAY_PW']
 server_name = os.environ['EVERYDAY_SERVER']
 host_ip = os.environ['EVERYDAY_HOST']
+port = os.environ.get('PORT', 5000)
 api_version = 'v1'
 
 postgres_local_base = "postgresql://{uid}:{pw}@{server}:5432/".format(server=server_name,
