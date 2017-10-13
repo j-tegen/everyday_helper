@@ -16,6 +16,7 @@ def get_all_todo():
     
     responseObject = {
         'status': 'success',
+        'message': 'Successfully fetched to-dos',
         'data': [todo.serialize() for todo in todos]
     }
     return make_response(jsonify(responseObject)), 200
@@ -51,6 +52,7 @@ def get_todo(id):
     if todo:
         responseObject = {
             'status': 'success',
+            'message': 'Successfully fetched to-do',
             'data': todo.serialize()
         }
         return make_response(jsonify(responseObject)), 200
@@ -58,6 +60,26 @@ def get_todo(id):
         responseObject = {
             'status': 'fail',
             'message': 'No such todo exists'
+        }
+        return make_response(jsonify(responseObject)), 404
+
+@bp_todo.route('/todo/<id>/', methods=['DELETE'])
+@login_required
+def delete_todo(id):
+    todo = Todo.query.filter_by(id=id, account_id=g.account_id).first()
+    
+    if todo:
+        db.session.delete(todo)
+        db.session.commit()
+        responseObject = {
+            'status': 'success',
+            'message': 'To-do deleted successfully'
+        }
+        return make_response(jsonify(responseObject)), 200
+    else:
+        responseObject = {
+            'status': 'fail',
+            'message': 'No such to-do exists'
         }
         return make_response(jsonify(responseObject)), 404
 
@@ -74,7 +96,7 @@ def create_todo():
         db.session.commit()
         responseObject = {
                 'status': 'success',
-                'message': 'Successfully created a todo',
+                'message': 'Successfully created to-do',
                 'data': todo.serialize()
             }
         return make_response(jsonify(responseObject)), 201
@@ -93,14 +115,14 @@ def update_todo(id):
     try:
         todo = Todo.query.get(id)
         todo.update(put_data)
-        if todo.user_id != g.user_id:
+        if todo.user_id != g.user_id and todo.user_id is not None:
             notification = Notification(account_id=g.account_id, user_id=todo.user_id, data={})
             todo.notifications.append(notification)
         db.session.add(todo)
         db.session.commit()
         responseObject = {
                 'status': 'success',
-                'message': 'Successfully updated todo',
+                'message': 'Successfully updated to-do',
                 'data': todo.serialize()
             }
         return make_response(jsonify(responseObject)), 201

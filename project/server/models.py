@@ -81,7 +81,7 @@ class Todo(db.Model, BaseModel):
     notifications = db.relationship('Notification', backref='todo')
 
     hide = ['shopping_list_id', 'user_id', 'account_id']
-    included_relations = ['notifications', 'shopping_list']
+    included_relations = ['notifications', 'shopping_list', 'user']
 
     def update(self, data):
         self.title = data.get('title')
@@ -119,6 +119,7 @@ class ShoppingList(db.Model, BaseModel):
     included_relations = ['user', 'shopping_list_items', 'category']
 
     def update(self, data):
+        print(data.get('done'))
         self.name = data.get('name')
         self.done = data.get('done')
         self.value = data.get('value')

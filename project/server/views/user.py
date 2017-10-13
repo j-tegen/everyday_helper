@@ -95,9 +95,19 @@ def user_login():
 @login_required
 def get_active_user():
     user = User.query.get(g.user_id)
-    responseObject = user.serialize(2)
+    responseObject = user.serialize()
     return make_response(jsonify(responseObject)), 200
 
+@bp_user.route('/users/', methods=['GET'])
+@login_required
+def get_all_users():
+    users = User.query.filter_by(account_id=g.account_id).all()
+    
+    responseObject = {
+        'status': 'success',
+        'data': [user.serialize() for user in users]
+    }
+    return make_response(jsonify(responseObject)), 200
 
 @bp_user.route('/user/logout/', methods=['POST'])
 def user_logout():
