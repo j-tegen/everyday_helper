@@ -89,9 +89,10 @@ def create_todo():
     post_data = request.get_json()
     try:
         todo = Todo(account_id=g.account_id, data=post_data)
-        if todo.user_id != g.user_id:
-            notification = Notification(account_id=g.account_id, user_id=todo.user_id, data={})
-            todo.notifications.append(notification)
+        if todo.user_id != g.user_id and todo.user_id is not None:
+            if not Notification.query.filter_by(account_id=g.account_id, user_id=todo.user_id, seen=False, todo_id=todo.id).first():
+                notification = Notification(account_id=g.account_id, user_id=todo.user_id, data={})
+                todo.notifications.append(notification)
         db.session.add(todo)
         db.session.commit()
         responseObject = {
@@ -116,8 +117,9 @@ def update_todo(id):
         todo = Todo.query.get(id)
         todo.update(put_data)
         if todo.user_id != g.user_id and todo.user_id is not None:
-            notification = Notification(account_id=g.account_id, user_id=todo.user_id, data={})
-            todo.notifications.append(notification)
+            if not Notification.query.filter_by(account_id=g.account_id, user_id=todo.user_id, seen=False, todo_id=todo.id).first():
+                notification = Notification(account_id=g.account_id, user_id=todo.user_id, data={})
+                todo.notifications.append(notification)
         db.session.add(todo)
         db.session.commit()
         responseObject = {
