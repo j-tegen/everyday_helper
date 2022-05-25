@@ -17,4 +17,4 @@ flask_script==2.0.6
 flask_migrate==2.1.1
 flask_bcrypt==0.7.1
 flask_cors==3.0.3
-PyJWT==1.5.3
+PyJWT==2.4.0
